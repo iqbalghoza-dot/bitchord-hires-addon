@@ -1,16 +1,17 @@
 {
   "id": "com.bitchord.hires.lossless",
-  "version": "1.0.3",
+  "version": "1.0.5",
   "name": "Hi-Res Lossless Audio",
-  "description": "Pencarian & Pemutar Audio Hi-Res Lossless untuk BitChord",
+  "description": "Server Musik Hi-Res Lossless (24-Bit / 16-Bit FLAC) untuk BitChord",
   "resources": [
     "search",
-    "catalog",
+    "stream",
     "meta",
-    "stream"
+    "catalog"
   ],
   "types": [
     "track",
+    "tracks",
     "music",
     "album",
     "artist"
@@ -21,7 +22,7 @@
   "catalogs": [
     {
       "type": "track",
-      "id": "hires-track",
+      "id": "hires-top",
       "name": "Hi-Res Lossless",
       "extra": [
         { "name": "search", "isRequired": false }
