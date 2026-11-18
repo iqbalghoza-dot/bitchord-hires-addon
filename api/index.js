@@ -1,4 +1,4 @@
-module.exports = async function handler(req, res) {
+async function handler(req, res) {
   res.setHeader('Content-Type', 'application/json');
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS');
@@ -195,4 +195,6 @@ module.exports = async function handler(req, res) {
       error: err.message
     });
   }
-};
+}
+
+module.exports = handler;
