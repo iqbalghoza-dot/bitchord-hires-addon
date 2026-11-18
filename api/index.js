@@ -14,10 +14,10 @@ async function handler(req, res) {
   } catch (_) {}
 
   const rawRoute = decodeURIComponent(req.query?.route || req.url || '');
-  console.log('BITCHORD_CALL:', req.method, rawRoute, JSON.stringify(req.query), JSON.stringify(body));
+  console.log('BITCHORD_CALL:', req.method, rawRoute, JSON.stringify(req.query));
 
   // ==========================================
-  // 1. ENDPOINT STREAM (BITCHORD V2)
+  // 1. ENDPOINT STREAM (PEMUTAR AUDIO)
   // ==========================================
   if (rawRoute.includes('stream') || rawRoute.includes('play')) {
     const hiresMatch = rawRoute.match(/(hires_[A-Za-z0-9_-]+)/);
@@ -75,12 +75,11 @@ async function handler(req, res) {
                 }
                 if (flacUrl) {
                   streams.push({
+                    name: 'Hi-Res Lossless (FLAC)',
+                    title: `${title} - ${artist} • Master Lossless`,
                     url: flacUrl,
                     format: 'flac',
-                    audioQuality: 'LOSSLESS',
-                    bitDepth: 24,
-                    sampleRate: 96000,
-                    mimeType: 'audio/flac'
+                    audioQuality: 'LOSSLESS'
                   });
                   break;
                 }
@@ -93,35 +92,63 @@ async function handler(req, res) {
 
     if (previewUrl) {
       streams.push({
+        name: 'Direct Audio (AAC)',
+        title: `${title} - ${artist} • Direct Audio`,
         url: previewUrl,
         format: 'm4a',
-        audioQuality: 'HIGH',
-        bitDepth: 16,
-        sampleRate: 44100,
-        mimeType: 'audio/mp4'
+        audioQuality: 'HIGH'
       });
     }
 
-    const best = streams[0] || {
-      url: previewUrl,
-      format: 'm4a',
-      audioQuality: 'HIGH',
-      mimeType: 'audio/mp4'
-    };
+    const bestUrl = streams[0]?.url || previewUrl || '';
 
     return res.status(200).json({
-      url: best.url,
-      format: best.format,
-      audioQuality: best.audioQuality,
-      bitDepth: best.bitDepth || 16,
-      sampleRate: best.sampleRate || 44100,
-      mimeType: best.mimeType,
+      url: bestUrl,
       streams
     });
   }
 
   // ==========================================
-  // 2. ENDPOINT SEARCH (GET & POST BITCHORD V2)
+  // 2. ENDPOINT META (DETAIL LAGU)
+  // ==========================================
+  if (rawRoute.includes('meta/')) {
+    const hiresMatch = rawRoute.match(/(hires_[A-Za-z0-9_-]+)/);
+    const idParam = hiresMatch ? hiresMatch[1] : 'hires_track';
+
+    let title = 'Hi-Res Track';
+    let artist = 'Unknown Artist';
+    let album = '';
+    let cover = 'https://dummyimage.com/500x500/0b0d12/00e5ff.png&text=HI-RES';
+
+    try {
+      if (idParam.startsWith('hires_')) {
+        const payload = JSON.parse(
+          Buffer.from(idParam.replace('hires_', ''), 'base64url').toString('utf8')
+        );
+        title = payload.t || title;
+        artist = payload.a || artist;
+        album = payload.al || '';
+        if (payload.c) cover = payload.c;
+      }
+    } catch (_) {}
+
+    return res.status(200).json({
+      meta: {
+        id: idParam,
+        type: 'movie',
+        name: title,
+        title,
+        artist,
+        album,
+        poster: cover,
+        posterShape: 'square',
+        description: `${artist}${album ? ` • ${album}` : ''}`
+      }
+    });
+  }
+
+  // ==========================================
+  // 3. ENDPOINT CATALOG & SEARCH (FORMAT PENCARIMUSIC)
   // ==========================================
   let query =
     req.query?.q ||
@@ -143,8 +170,9 @@ async function handler(req, res) {
       const segments = cleanRoute.split('/').filter(Boolean);
       const last = segments[segments.length - 1] || '';
       const ignored = [
-        'v1', 'v2', 'search', 'catalog', 'track', 'tracks',
-        'music', 'album', 'albums', 'artist', 'artists', 'api', 'index.js'
+        'v1', 'v2', 'search', 'catalog', 'track', 'tracks', 'movie', 'series',
+        'music', 'album', 'albums', 'artist', 'artists', 'hires_music_search',
+        'hires_track_search', 'api', 'index.js'
       ];
       if (last && !ignored.includes(last.toLowerCase())) {
         query = last;
@@ -153,6 +181,7 @@ async function handler(req, res) {
   }
 
   const searchTerm = (query || 'Tulus').trim();
+  const reqType = rawRoute.includes('/track/') ? 'track' : 'movie';
 
   try {
     const apiRes = await fetch(
@@ -160,7 +189,7 @@ async function handler(req, res) {
     );
     const data = await apiRes.json();
 
-    const tracks = (data.results || []).map((track) => {
+    const metas = (data.results || []).map((track) => {
       const artist = track.artistName || 'Unknown Artist';
       const title = track.trackName || 'Unknown Title';
       const album = track.collectionName || '';
@@ -181,20 +210,31 @@ async function handler(req, res) {
 
       return {
         id: `hires_${encodedPayload}`,
+        type: reqType,
+        name: title,
         title,
         artist,
         album,
         duration,
+        poster: cover,
         artworkURL: cover,
+        posterShape: 'square',
+        description: `${artist}${album ? ` • ${album}` : ''}`,
         format: 'flac',
         audioQuality: 'LOSSLESS',
         source: 'hires-lossless'
       };
     });
 
-    return res.status(200).json({ tracks });
+    return res.status(200).json({
+      metas,
+      tracks: metas
+    });
   } catch (err) {
-    return res.status(200).json({ tracks: [] });
+    return res.status(200).json({
+      metas: [],
+      tracks: []
+    });
   }
 }
 
