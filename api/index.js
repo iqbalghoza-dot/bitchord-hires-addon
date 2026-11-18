@@ -15,7 +15,7 @@ async function handler(req, res) {
   // 1. ENDPOINT STREAM (BITCHORD V2)
   // ==========================================
   if (rawRoute.includes('stream') || rawRoute.includes('play')) {
-    const hiresMatch = rawRoute.match(/(hires:[A-Za-z0-9_-]+)/);
+    const hiresMatch = rawRoute.match(/(hires_[A-Za-z0-9_-]+)/);
     const idParam = req.query?.id || (hiresMatch ? hiresMatch[1] : '');
 
     let title = '';
@@ -23,9 +23,9 @@ async function handler(req, res) {
     let previewUrl = '';
 
     try {
-      if (idParam.startsWith('hires:')) {
+      if (idParam.startsWith('hires_')) {
         const payload = JSON.parse(
-          Buffer.from(idParam.replace('hires:', ''), 'base64url').toString('utf8')
+          Buffer.from(idParam.replace('hires_', ''), 'base64url').toString('utf8')
         );
         title = payload.t || '';
         artist = payload.a || '';
@@ -35,7 +35,6 @@ async function handler(req, res) {
 
     const streams = [];
 
-    // Ambil aliran Hi-Res Lossless FLAC (24-Bit / 16-Bit) dari node lossless publik
     if (title && artist) {
       const nodes = [
         'https://triton.squid.wtf',
@@ -72,14 +71,11 @@ async function handler(req, res) {
                 if (flacUrl) {
                   streams.push({
                     url: flacUrl,
-                    quality: 'lossless',
                     format: 'flac',
+                    audioQuality: 'LOSSLESS',
                     bitDepth: 24,
                     sampleRate: 96000,
-                    bitrate: 1411,
-                    mimeType: 'audio/flac',
-                    name: 'Hi-Res Lossless (FLAC)',
-                    title: `${title} - ${artist} • Master Lossless`
+                    mimeType: 'audio/flac'
                   });
                   break;
                 }
@@ -90,33 +86,28 @@ async function handler(req, res) {
       }
     }
 
-    // Stream cadangan langsung AAC/M4A agar selalu bisa diputar
     if (previewUrl) {
       streams.push({
         url: previewUrl,
-        quality: 'high',
         format: 'm4a',
+        audioQuality: 'HIGH',
         bitDepth: 16,
         sampleRate: 44100,
-        bitrate: 256,
-        mimeType: 'audio/mp4',
-        name: 'Direct Stream (AAC)',
-        title: `${title} - ${artist} • Direct Audio`
+        mimeType: 'audio/mp4'
       });
     }
 
     const best = streams[0] || {
       url: previewUrl,
-      quality: 'high',
       format: 'm4a',
+      audioQuality: 'HIGH',
       mimeType: 'audio/mp4'
     };
 
     return res.status(200).json({
       url: best.url,
-      streamUrl: best.url,
-      quality: best.quality,
       format: best.format,
+      audioQuality: best.audioQuality,
       bitDepth: best.bitDepth || 16,
       sampleRate: best.sampleRate || 44100,
       mimeType: best.mimeType,
@@ -125,7 +116,7 @@ async function handler(req, res) {
   }
 
   // ==========================================
-  // 2. ENDPOINT SEARCH (SPESIFIKASI BITCHORD V2)
+  // 2. ENDPOINT SEARCH (100% IDENTIK DENGAN LOSSLESS BRIDGE)
   // ==========================================
   let query =
     req.query?.q ||
@@ -163,11 +154,11 @@ async function handler(req, res) {
     const tracks = (data.results || []).map((track) => {
       const artist = track.artistName || 'Unknown Artist';
       const title = track.trackName || 'Unknown Title';
-      const album = track.collectionName || 'Single';
+      const album = track.collectionName || '';
       const cover =
         (track.artworkUrl100 || '').replace('100x100bb', '600x600bb') ||
         'https://dummyimage.com/500x500/0b0d12/00e5ff.png&text=HI-RES';
-      const durationSec = Math.round((track.trackTimeMillis || 0) / 1000);
+      const duration = Math.round(((track.trackTimeMillis || 0) / 1000) * 10) / 10;
 
       const encodedPayload = Buffer.from(
         JSON.stringify({
@@ -179,88 +170,24 @@ async function handler(req, res) {
         })
       ).toString('base64url');
 
-      const trackId = `hires:${encodedPayload}`;
-
       return {
-        id: trackId,
-        title: title,
-        name: title,
-        artist: artist,
-        artistName: artist,
-        artists: [
-          {
-            id: `hires:artist:${encodeURIComponent(artist)}`,
-            name: artist
-          }
-        ],
-        album: album,
-        albumName: album,
-        albumId: `hires:album:${track.collectionId || encodeURIComponent(album)}`,
-        trackNumber: track.trackNumber || 1,
-        discNumber: track.discNumber || 1,
-        duration: durationSec,
-        durationMs: track.trackTimeMillis || durationSec * 1000,
-        cover: cover,
-        coverUrl: cover,
-        artwork: cover,
-        artworkUrl: cover,
-        thumbnail: cover,
-        quality: 'lossless',
-        isLossless: true,
-        explicit: track.trackExplicitness === 'explicit'
+        id: `hires_${encodedPayload}`,
+        title,
+        artist,
+        album,
+        duration,
+        artworkURL: cover,
+        format: 'flac',
+        audioQuality: 'LOSSLESS',
+        source: 'hires-lossless'
       };
     });
 
-    // Susun daftar album & artis unik dari hasil lagu untuk tab Albums / Artists di BitChord
-    const albumMap = new Map();
-    const artistMap = new Map();
-
-    for (const tr of tracks) {
-      if (!albumMap.has(tr.albumId)) {
-        albumMap.set(tr.albumId, {
-          id: tr.albumId,
-          title: tr.album,
-          name: tr.album,
-          artist: tr.artist,
-          artistName: tr.artist,
-          cover: tr.cover,
-          coverUrl: tr.cover,
-          artwork: tr.cover,
-          artworkUrl: tr.cover
-        });
-      }
-      const artistId = `hires:artist:${encodeURIComponent(tr.artist)}`;
-      if (!artistMap.has(artistId)) {
-        artistMap.set(artistId, {
-          id: artistId,
-          name: tr.artist,
-          title: tr.artist,
-          cover: tr.cover,
-          coverUrl: tr.cover,
-          artwork: tr.cover,
-          artworkUrl: tr.cover
-        });
-      }
-    }
-
-    return res.status(200).json({
-      tracks,
-      albums: Array.from(albumMap.values()),
-      artists: Array.from(artistMap.values()),
-      results: tracks,
-      items: tracks
-    });
+    return res.status(200).json({ tracks });
   } catch (err) {
-    return res.status(200).json({
-      tracks: [],
-      albums: [],
-      artists: [],
-      results: [],
-      items: [],
-      error: err.message
-    });
+    return res.status(200).json({ tracks: [] });
   }
 }
 
 module.exports = handler;
-        
+              
