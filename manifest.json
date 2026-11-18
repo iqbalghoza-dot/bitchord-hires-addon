@@ -1,22 +1,49 @@
 {
   "id": "app.bitchord.hires-lossless",
+  "version": "3.2.0",
   "name": "Hi-Res Lossless Audio",
-  "version": "2.0.0",
+  "description": "Search and stream Hi-Res Lossless FLAC & Direct Audio for BitChord.",
+  "contentType": "music",
+  "icon": "https://dummyimage.com/500x500/0b0d12/00e5ff.png&text=HI-RES",
+  "logo": "https://dummyimage.com/500x500/0b0d12/00e5ff.png&text=HI-RES",
   "resources": [
     "search",
-    "stream"
+    "stream",
+    "catalog",
+    "meta"
   ],
-  "minAppVersion": 39,
-  "allowDownloads": 1,
-  "checkValidLossless": 0,
-  "settings": [
+  "types": [
+    "track",
+    "album",
+    "artist",
+    "playlist",
+    "movie",
+    "series"
+  ],
+  "idPrefixes": [
+    "hires_"
+  ],
+  "catalogs": [
     {
-      "key": "quality",
-      "type": "select",
-      "default": "lossless",
-      "options": [
-        { "label": "Hi-Res Lossless (FLAC)", "value": "lossless" },
-        { "label": "High (AAC/M4A)", "value": "high" }
+      "type": "movie",
+      "id": "hires_music_search",
+      "name": "Hi-Res Lossless · Search",
+      "extra": [
+        {
+          "name": "search",
+          "isRequired": true
+        }
+      ]
+    },
+    {
+      "type": "track",
+      "id": "hires_track_search",
+      "name": "Hi-Res Tracks",
+      "extra": [
+        {
+          "name": "search",
+          "isRequired": false
+        }
       ]
     }
   ]
