@@ -6,6 +6,7 @@
     "search",
     "stream"
   ],
+  "bitchordAuth": true,
   "minAppVersion": 39,
   "allowDownloads": 1,
   "checkValidLossless": 0,
