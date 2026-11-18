@@ -7,19 +7,14 @@ module.exports = async function handler(req, res) {
     return res.status(200).end();
   }
 
-  const rawUrl = decodeURIComponent(
-    req.headers['x-invoke-path'] ||
-    req.headers['x-matched-path'] ||
-    req.url ||
-    ''
-  );
-  const cleanUrl = rawUrl.split('?')[0];
+  const action = (req.query?.action || '').toLowerCase();
+  const route = decodeURIComponent(req.query?.route || req.url || '');
 
   // ==========================================
-  // 1. ENDPOINT STREAM (PEMUTAR AUDIO)
+  // 1. STREAM (PEMUTAR AUDIO)
   // ==========================================
-  if (cleanUrl.startsWith('/stream/') || rawUrl.includes('/stream/')) {
-    const hiresMatch = rawUrl.match(/(hires:[A-Za-z0-9_-]+)/);
+  if (action === 'stream' || route.includes('/stream/')) {
+    const hiresMatch = route.match(/(hires:[A-Za-z0-9_-]+)/);
     const rawId = hiresMatch ? hiresMatch[1] : '';
 
     let title = '';
@@ -39,7 +34,6 @@ module.exports = async function handler(req, res) {
 
     const streams = [];
 
-    // Coba ambil FLAC Lossless 24-Bit/16-Bit dari server lossless
     if (title && artist) {
       const nodes = ['https://triton.squid.wtf', 'https://api.monochrome.tf'];
       for (const node of nodes) {
@@ -83,7 +77,6 @@ module.exports = async function handler(req, res) {
       }
     }
 
-    // Stream cadangan langsung dari Apple/iTunes AAC
     if (previewUrl) {
       streams.push({
         name: 'Hi-Res Direct Stream',
@@ -96,10 +89,10 @@ module.exports = async function handler(req, res) {
   }
 
   // ==========================================
-  // 2. ENDPOINT META (DETAIL LAGU)
+  // 2. META (DETAIL LAGU)
   // ==========================================
-  if (cleanUrl.startsWith('/meta/') || rawUrl.includes('/meta/')) {
-    const hiresMatch = rawUrl.match(/(hires:[A-Za-z0-9_-]+)/);
+  if (action === 'meta' || route.includes('/meta/')) {
+    const hiresMatch = route.match(/(hires:[A-Za-z0-9_-]+)/);
     const rawId = hiresMatch ? hiresMatch[1] : 'hires:track';
 
     let title = 'Hi-Res Lossless Track';
@@ -133,25 +126,26 @@ module.exports = async function handler(req, res) {
   }
 
   // ==========================================
-  // 3. ENDPOINT SEARCH & CATALOG (ITUNES API)
+  // 3. SEARCH & CATALOG
   // ==========================================
   let query = req.query?.q || req.query?.query || req.query?.search || '';
 
-  if (!query) {
-    const eqMatch = rawUrl.match(/search=([^&.?/]+)/i);
+  if (!query && route) {
+    const eqMatch = route.match(/search=([^&.?/]+)/i);
     if (eqMatch) {
       query = eqMatch[1];
     } else {
-      const segments = cleanUrl.replace(/\.json$/i, '').split('/').filter(Boolean);
+      const cleanRoute = route.split('?')[0].replace(/\.json$/i, '');
+      const segments = cleanRoute.split('/').filter(Boolean);
       const last = segments[segments.length - 1] || '';
-      if (last && !['search', 'catalog', 'track', 'music', 'hires-track', 'index.js'].includes(last.toLowerCase())) {
+      if (last && !['search', 'catalog', 'track', 'music', 'hires-track'].includes(last.toLowerCase())) {
         query = last;
       }
     }
   }
 
   const searchTerm = (query || 'Tulus').trim();
-  const reqType = cleanUrl.includes('/music/') ? 'music' : 'track';
+  const reqType = route.includes('music') ? 'music' : 'track';
 
   try {
     const apiRes = await fetch(
