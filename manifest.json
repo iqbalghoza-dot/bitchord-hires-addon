@@ -1,19 +1,10 @@
 {
-  "id": "com.bitchord.addon.hires-lossless",
-  "name": "Bitchord Hi-Res Lossless Engine",
+  "id": "com.bitchord.hires.lossless",
   "version": "1.0.0",
-  "description": "24-bit / 192kHz Lossless Audio Decoder & Bit-Perfect DSP Addon",
-  "types": ["stream", "audio"],
+  "name": "Hi-Res Lossless Audio",
+  "description": "Audio FLAC dan WAV kualitas jernih untuk BitChord",
   "resources": ["stream"],
-  "capabilities": [
-    "audio/flac",
-    "audio/wav",
-    "audio/alac",
-    "dsp:bit-perfect",
-    "dsp:32bit-float"
-  ],
-  "endpoints": {
-    "ui": "/",
-    "dspWorklet": "/worklet-dsp.js"
-  }
+  "types": ["music", "audio"],
+  "idPrefixes": ["bc", "tt", "yt", "sp", "dz"],
+  "catalogs": []
 }
