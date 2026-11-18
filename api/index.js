@@ -108,7 +108,7 @@ async function handler(req, res) {
       const cleanRoute = rawRoute.split('?')[0].replace(/\.json$/i, '');
       const segments = cleanRoute.split('/').filter(Boolean);
       const last = segments[segments.length - 1] || '';
-      const ignored = ['search', 'catalog', 'track', 'tracks', 'music', 'album', 'artist', 'hires-top', 'api', 'index.js'];
+      const ignored = ['v1', 'v2', 'search', 'catalog', 'track', 'tracks', 'music', 'album', 'artist', 'hires-top', 'api', 'index.js'];
       if (last && !ignored.includes(last.toLowerCase())) {
         query = last;
       }
