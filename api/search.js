@@ -2,18 +2,30 @@ export default async function handler(req, res) {
   res.setHeader('Content-Type', 'application/json');
   res.setHeader('Access-Control-Allow-Origin', '*');
 
-  const url = req.url || '';
-  const queryMatch =
-    url.match(/[?&](?:q|query|search)=([^&]+)/i) ||
-    url.match(/search=([^&.]+)/i);
-  const query = queryMatch ? decodeURIComponent(queryMatch[1]).trim() : '';
+  const rawUrl = decodeURIComponent(req.url || '');
+  const queryParam = req.query?.q || req.query?.query || req.query?.search || '';
+
+  let query = queryParam;
+
+  if (!query) {
+    // Ekstrak dari pola seperti /search/music/judullagu.json atau search=judullagu
+    const searchEqMatch = rawUrl.match(/search=([^&./]+)/i);
+    const pathMatch = rawUrl.match(/\/(?:search|catalog)\/(?:[^/]+\/)?([^/?]+?)(?:\.json)?(?:\?|$)/i);
+
+    if (searchEqMatch) {
+      query = searchEqMatch[1];
+    } else if (pathMatch && pathMatch[1] !== 'hires-search') {
+      query = pathMatch[1];
+    }
+  }
+
+  query = (query || '').replace(/\.json$/i, '').trim();
 
   if (!query) {
     return res.status(200).json({ metas: [], results: [], tracks: [] });
   }
 
   try {
-    // Mengambil katalog lagu asli via Deezer Public Search API (tanpa API key, cepat & akurat)
     const apiRes = await fetch(
       `https://api.deezer.com/search/track?q=${encodeURIComponent(query)}&limit=20`
     );
@@ -29,7 +41,6 @@ export default async function handler(req, res) {
         track.album?.cover_medium ||
         'https://dummyimage.com/500x500/0b0d12/00e5ff.png&text=HI-RES';
 
-      // Encode artist & title ke dalam ID agar stream.js bisa mencocokkan file FLAC-nya
       const encodedPayload = Buffer.from(
         JSON.stringify({ t: title, a: artist, dz: track.id })
       ).toString('base64url');
@@ -46,7 +57,7 @@ export default async function handler(req, res) {
         duration: track.duration,
         poster: cover,
         posterShape: 'square',
-        description: `${title} • ${artist}${album ? ` (${album})` : ''} • Hi-Res Lossless Ready`
+        description: `${title} • ${artist}${album ? ` (${album})` : ''}`
       };
     });
 
