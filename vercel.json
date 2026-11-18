@@ -5,34 +5,16 @@
     {
       "source": "/(.*)",
       "headers": [
-        { "key": "Access-Control-Allow-Origin", "value": "*" }
+        { "key": "Access-Control-Allow-Origin", "value": "*" },
+        { "key": "Access-Control-Allow-Methods", "value": "GET,OPTIONS" }
       ]
     }
   ],
   "rewrites": [
-    {
-      "source": "/search",
-      "destination": "/api/search.js"
-    },
-    {
-      "source": "/search/:path*",
-      "destination": "/api/search.js"
-    },
-    {
-      "source": "/catalog/:type/:id/:extra.json",
-      "destination": "/api/catalog.js"
-    },
-    {
-      "source": "/catalog/:type/:id.json",
-      "destination": "/api/catalog.js"
-    },
-    {
-      "source": "/meta/:type/:id.json",
-      "destination": "/api/meta.js"
-    },
-    {
-      "source": "/stream/:type/:id.json",
-      "destination": "/api/stream.js"
-    }
+    { "source": "/search", "destination": "/api/search.js" },
+    { "source": "/search/:path*", "destination": "/api/search.js?path=:path*" },
+    { "source": "/catalog/:path*", "destination": "/api/search.js?path=:path*" },
+    { "source": "/meta/:path*", "destination": "/api/meta.js?path=:path*" },
+    { "source": "/stream/:path*", "destination": "/api/stream.js?path=:path*" }
   ]
 }
