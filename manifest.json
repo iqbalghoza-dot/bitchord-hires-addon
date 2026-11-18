@@ -1,24 +1,44 @@
 {
   "id": "com.bitchord.hires.lossless",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "name": "Hi-Res Lossless Audio",
   "description": "Server Musik Hi-Res Lossless (24-Bit / 16-Bit FLAC) untuk BitChord",
+  "logo": "https://dummyimage.com/500x500/0b0d12/00e5ff.png&text=HI-RES",
   "resources": [
     "search",
     "stream",
     "meta",
-    "catalog"
+    "catalog",
+    {
+      "name": "search",
+      "types": ["track", "album", "artist", "playlist", "music"],
+      "idPrefixes": ["hires:"]
+    },
+    {
+      "name": "stream",
+      "types": ["track", "album", "music"],
+      "idPrefixes": ["hires:"]
+    },
+    {
+      "name": "meta",
+      "types": ["track", "album", "artist", "music"],
+      "idPrefixes": ["hires:"]
+    }
   ],
   "types": [
     "track",
-    "tracks",
-    "music",
     "album",
-    "artist"
+    "artist",
+    "playlist",
+    "music"
   ],
   "idPrefixes": [
     "hires:"
   ],
+  "search": {
+    "types": ["track", "album", "artist", "music"],
+    "endpoint": "/search"
+  },
   "catalogs": [
     {
       "type": "track",
