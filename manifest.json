@@ -1,8 +1,11 @@
 {
+  "manifestVersion": 2,
   "id": "com.bitchord.hires.lossless",
-  "version": "1.0.7",
+  "version": "2.0.0",
   "name": "Hi-Res Lossless Audio",
   "description": "Lossless (FLAC, up to 24/192) & Direct Audio untuk BitChord",
+  "icon": "https://dummyimage.com/500x500/0b0d12/00e5ff.png&text=HI-RES",
+  "logo": "https://dummyimage.com/500x500/0b0d12/00e5ff.png&text=HI-RES",
   "resources": [
     "search",
     "catalog",
@@ -19,6 +22,11 @@
   "idPrefixes": [
     "hires:"
   ],
+  "capabilities": {
+    "search": true,
+    "stream": true,
+    "download": true
+  },
   "catalogs": [
     {
       "type": "track",
