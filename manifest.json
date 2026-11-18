@@ -2,9 +2,22 @@
   "id": "com.bitchord.hires.lossless",
   "version": "1.0.0",
   "name": "Hi-Res Lossless Audio",
-  "description": "Audio FLAC dan WAV kualitas jernih untuk BitChord",
-  "resources": ["stream"],
-  "types": ["music", "audio"],
-  "idPrefixes": ["bc", "tt", "yt", "sp", "dz"],
-  "catalogs": []
+  "description": "Pencarian & Pemutar Audio FLAC/WAV Hi-Res Lossless untuk BitChord",
+  "resources": [
+    "catalog",
+    "meta",
+    "stream"
+  ],
+  "types": ["music"],
+  "idPrefixes": ["hires:"],
+  "catalogs": [
+    {
+      "type": "music",
+      "id": "hires-search",
+      "name": "Hi-Res Lossless",
+      "extra": [
+        { "name": "search", "isRequired": true }
+      ]
+    }
+  ]
 }
