@@ -10,6 +10,9 @@ async function handler(req, res) {
   const action = (req.query?.action || '').toLowerCase();
   const route = decodeURIComponent(req.query?.route || req.url || '');
 
+  // ==========================================
+  // 1. STREAM (PEMUTAR AUDIO)
+  // ==========================================
   if (action === 'stream' || route.includes('/stream/')) {
     const hiresMatch = route.match(/(hires:[A-Za-z0-9_-]+)/);
     const rawId = hiresMatch ? hiresMatch[1] : '';
@@ -32,7 +35,7 @@ async function handler(req, res) {
     const streams = [];
 
     if (title && artist) {
-      const nodes = ['https://triton.squid.wtf', 'https://api.monochrome.tf'];
+      const nodes = ['https://triton.squid.wtf', 'https://api.monochrome.tf', 'https://hifi.pnp.workers.dev'];
       for (const node of nodes) {
         try {
           const ctrl = new AbortController();
@@ -63,6 +66,8 @@ async function handler(req, res) {
                   streams.push({
                     name: 'Hi-Res Lossless (FLAC)',
                     title: `${title} - ${artist} • Master Lossless`,
+                    quality: 'HI_RES_LOSSLESS',
+                    format: 'FLAC',
                     url: flacUrl
                   });
                   break;
@@ -78,19 +83,31 @@ async function handler(req, res) {
       streams.push({
         name: 'Hi-Res Direct Stream',
         title: `${title} - ${artist} • Direct Audio`,
+        quality: 'HIGH',
+        format: 'M4A',
         url: previewUrl
       });
     }
 
-    return res.status(200).json({ streams });
+    const primaryUrl = streams[0]?.url || previewUrl || '';
+
+    return res.status(200).json({
+      url: primaryUrl,
+      streamUrl: primaryUrl,
+      streams
+    });
   }
 
+  // ==========================================
+  // 2. META (DETAIL LAGU)
+  // ==========================================
   if (action === 'meta' || route.includes('/meta/')) {
     const hiresMatch = route.match(/(hires:[A-Za-z0-9_-]+)/);
     const rawId = hiresMatch ? hiresMatch[1] : 'hires:track';
 
     let title = 'Hi-Res Lossless Track';
     let artist = 'Unknown Artist';
+    let album = 'Hi-Res Lossless';
     let poster = 'https://dummyimage.com/500x500/0b0d12/00e5ff.png&text=HI-RES';
 
     try {
@@ -100,26 +117,37 @@ async function handler(req, res) {
         );
         title = payload.t || title;
         artist = payload.a || artist;
+        if (payload.al) album = payload.al;
         if (payload.c) poster = payload.c;
       }
     } catch (_) {}
 
+    const metaObj = {
+      id: rawId,
+      type: 'track',
+      name: title,
+      title,
+      artist,
+      artists: [artist],
+      album,
+      poster,
+      cover: poster,
+      artwork: poster,
+      posterShape: 'square',
+      description: `${title} • ${artist} (${album})`
+    };
+
     return res.status(200).json({
-      meta: {
-        id: rawId,
-        type: 'track',
-        name: `${title} - ${artist}`,
-        title,
-        artist,
-        poster,
-        cover: poster,
-        posterShape: 'square',
-        description: `Hi-Res Lossless Stream • ${title} oleh ${artist}`
-      }
+      meta: metaObj,
+      track: metaObj,
+      data: metaObj
     });
   }
 
-  let query = req.query?.q || req.query?.query || req.query?.search || '';
+  // ==========================================
+  // 3. SEARCH & CATALOG
+  // ==========================================
+  let query = req.query?.q || req.query?.query || req.query?.search || req.query?.term || '';
 
   if (!query && route) {
     const eqMatch = route.match(/search=([^&.?/]+)/i);
@@ -129,14 +157,14 @@ async function handler(req, res) {
       const cleanRoute = route.split('?')[0].replace(/\.json$/i, '');
       const segments = cleanRoute.split('/').filter(Boolean);
       const last = segments[segments.length - 1] || '';
-      if (last && !['search', 'catalog', 'track', 'music', 'hires-track'].includes(last.toLowerCase())) {
+      const ignored = ['search', 'catalog', 'track', 'tracks', 'music', 'album', 'artist', 'hires-top'];
+      if (last && !ignored.includes(last.toLowerCase())) {
         query = last;
       }
     }
   }
 
   const searchTerm = (query || 'Tulus').trim();
-  const reqType = route.includes('music') ? 'music' : 'track';
 
   try {
     const apiRes = await fetch(
@@ -156,6 +184,7 @@ async function handler(req, res) {
         JSON.stringify({
           t: title,
           a: artist,
+          al: album,
           c: cover,
           u: track.previewUrl || ''
         })
@@ -165,8 +194,8 @@ async function handler(req, res) {
 
       return {
         id: itemId,
-        type: reqType,
-        name: `${title} - ${artist}`,
+        type: 'track',
+        name: title,
         title,
         artist,
         artists: [artist],
@@ -176,25 +205,29 @@ async function handler(req, res) {
         cover,
         artwork: cover,
         thumbnail: cover,
+        image: cover,
         posterShape: 'square',
-        description: `${title} • ${artist}${album ? ` (${album})` : ''}`
+        description: `${artist}${album ? ` • ${album}` : ''}`
       };
     });
 
     return res.status(200).json({
-      metas: items,
-      results: items,
       tracks: items,
+      results: items,
+      metas: items,
+      data: items,
       items
     });
   } catch (err) {
     return res.status(200).json({
-      metas: [],
-      results: [],
       tracks: [],
+      results: [],
+      metas: [],
+      data: [],
       error: err.message
     });
   }
 }
 
 module.exports = handler;
+                       
