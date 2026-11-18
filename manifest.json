@@ -4,19 +4,26 @@
   "name": "Hi-Res Lossless Audio",
   "description": "Pencarian & Pemutar Audio FLAC/WAV Hi-Res Lossless untuk BitChord",
   "resources": [
+    "search",
     "catalog",
     "meta",
     "stream"
   ],
-  "types": ["music"],
-  "idPrefixes": ["hires:"],
+  "types": [
+    "music",
+    "track",
+    "album"
+  ],
+  "idPrefixes": [
+    "hires:"
+  ],
   "catalogs": [
     {
       "type": "music",
       "id": "hires-search",
       "name": "Hi-Res Lossless",
       "extra": [
-        { "name": "search", "isRequired": true }
+        { "name": "search", "isRequired": false }
       ]
     }
   ]
