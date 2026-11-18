@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bitchord — Hi-Res Lossless Addon</title>
+  <style>
+    :root {
+      --bg: #0b0d12;
+      --card: #141822;
+      --accent: #00e5ff;
+      --gold: #f5c542;
+      --text: #e6edf3;
+      --muted: #8b949e;
+    }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
+    .addon-card {
+      background: var(--card);
+      border: 1px solid #252c3d;
+      border-radius: 16px;
+      padding: 24px;
+      width: 100%;
+      max-width: 460px;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+    }
+    .badge-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+    .hires-badge {
+      background: rgba(245, 197, 66, 0.15);
+      color: var(--gold);
+      border: 1px solid var(--gold);
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.8px;
+    }
+    .status-dot {
+      font-size: 12px;
+      color: var(--accent);
+    }
+    h2 { margin: 0 0 6px; font-size: 18px; }
+    p { margin: 0 0 18px; font-size: 13px; color: var(--muted); }
+    .specs {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      background: #0d1017;
+      padding: 12px;
+      border-radius: 10px;
+      margin-bottom: 18px;
+      text-align: center;
+    }
+    .spec-label { font-size: 10px; color: var(--muted); text-transform: uppercase; }
+    .spec-val { font-size: 14px; font-weight: 700; color: var(--accent); margin-top: 4px; }
+    canvas {
+      width: 100%;
+      height: 80px;
+      background: #090b10;
+      border-radius: 8px;
+      margin-bottom: 16px;
+      display: block;
+    }
+    .controls {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    input[type="file"] {
+      background: #0d1017;
+      padding: 10px;
+      border-radius: 8px;
+      border: 1px dashed #2e374d;
+      color: var(--text);
+      font-size: 12px;
+    }
+    .btn-row {
+      display: flex;
+      gap: 10px;
+    }
+    button {
+      flex: 1;
+      padding: 10px;
+      border-radius: 8px;
+      border: none;
+      font-weight: 600;
+      cursor: pointer;
+      background: var(--accent);
+      color: #051014;
+    }
+    button.secondary {
+      background: #212838;
+      color: var(--text);
+    }
+    .toggle-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 13px;
+      padding-top: 8px;
+      border-top: 1px solid #212838;
+    }
+  </style>
+</head>
+<body>
+  <div class="addon-card">
+    <div class="badge-row">
+      <span class="hires-badge">HI-RES AUDIO LOSSLESS</span>
+      <span class="status-dot" id="engineStatus">● Engine Standby</span>
+    </div>
+
+    <h2 id="trackTitle">Bitchord Lossless DSP Addon</h2>
+    <p id="trackMeta">Menunggu stream FLAC / WAV dari Bitchord atau file lokal...</p>
+
+    <div class="specs">
+      <div>
+        <div class="spec-label">Sample Rate</div>
+        <div class="spec-val" id="sampleRateVal">— kHz</div>
+      </div>
+      <div>
+        <div class="spec-label">Bit Depth</div>
+        <div class="spec-val" id="bitDepthVal">32-Bit Float</div>
+      </div>
+      <div>
+        <div class="spec-label">Mode</div>
+        <div class="spec-val" id="modeVal">BIT-PERFECT</div>
+      </div>
+    </div>
+
+    <canvas id="visualizer" width="420" height="80"></canvas>
+
+    <div class="controls">
+      <input type="file" id="audioFile" accept=".flac,.wav,.alac,.ogg,audio/*" />
+      
+      <div class="btn-row">
+        <button id="playBtn">Play Lossless</button>
+        <button id="stopBtn" class="secondary">Stop</button>
+      </div>
+
+      <div class="toggle-row">
+        <span>Bit-Perfect Passthrough (Bypass Gain)</span>
+        <input type="checkbox" id="bitPerfectToggle" checked />
+      </div>
+    </div>
+  </div>
+
+  <audio id="audioElement" crossorigin="anonymous"></audio>
+
+  <script>
+    let audioCtx;
+    let workletNode;
+    let analyser;
+    let sourceNode;
+    const audioEl = document.getElementById('audioElement');
+
+    async function initAudioEngine() {
+      if (audioCtx) return;
+
+      // Meminta sample rate tertinggi yang didukung DAC perangkat (hingga 192kHz)
+      const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+      audioCtx = new AudioContextClass({
+        latencyHint: 'playback',
+        sampleRate: 192000
+      });
+
+      // Fallback jika DAC perangkat hanya mendukung 48kHz / 96kHz
+      document.getElementById('sampleRateVal').textContent = (audioCtx.sampleRate / 1000).toFixed(1) + ' kHz';
+
+      await audioCtx.audioWorklet.addModule('/worklet-dsp.js');
+      workletNode = new AudioWorkletNode(audioCtx, 'hires-lossless-processor');
+
+      analyser = audioCtx.createAnalyser();
+      analyser.fftSize = 2048;
+      analyser.smoothingTimeConstant = 0.85;
+
+      sourceNode = audioCtx.createMediaElementSource(audioEl);
+      sourceNode.connect(workletNode);
+      workletNode.connect(analyser);
+      analyser.connect(audioCtx.destination);
+
+      document.getElementById('engineStatus').textContent = '● Active (Lossless)';
+      drawVisualizer();
+    }
+
+    function drawVisualizer() {
+      const canvas = document.getElementById('visualizer');
+      const ctx = canvas.getContext('2d');
+      const bufferLength = analyser.frequencyBinCount;
+      const dataArray = new Uint8Array(bufferLength);
+
+      function render() {
+        requestAnimationFrame(render);
+        analyser.getByteFrequencyData(dataArray);
+
+        ctx.fillStyle = '#090b10';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        const barWidth = (canvas.width / 128);
+        let x = 0;
+
+        for (let i = 0; i < 128; i++) {
+          const barHeight = (dataArray[i] / 255) * canvas.height;
+          ctx.fillStyle = i > 85 ? '#f5c542' : '#00e5ff'; // Emas untuk frekuensi ultrasonik >20kHz
+          ctx.fillRect(x, canvas.height - barHeight, barWidth - 1, barHeight);
+          x += barWidth;
+        }
+      }
+      render();
+    }
+
+    // Muat file lokal FLAC / WAV
+    document.getElementById('audioFile').addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      await initAudioEngine();
+      audioEl.src = URL.createObjectURL(file);
+      document.getElementById('trackTitle').textContent = file.name;
+      document.getElementById('trackMeta').textContent = `Format: ${file.type || 'Lossless PCM'} • ${(file.size / (1024 * 1024)).toFixed(2)} MB`;
+    });
+
+    document.getElementById('playBtn').addEventListener('click', async () => {
+      await initAudioEngine();
+      if (audioCtx.state === 'suspended') await audioCtx.resume();
+      audioEl.play();
+    });
+
+    document.getElementById('stopBtn').addEventListener('click', () => {
+      audioEl.pause();
+      audioEl.currentTime = 0;
+    });
+
+    document.getElementById('bitPerfectToggle').addEventListener('change', (e) => {
+      const isBitPerfect = e.target.checked;
+      document.getElementById('modeVal').textContent = isBitPerfect ? 'BIT-PERFECT' : 'DSP GAIN';
+      if (workletNode) {
+        workletNode.port.postMessage({ type: 'SET_BIT_PERFECT', value: isBitPerfect });
+      }
+    });
+
+    // Bridge API untuk menerima perintah stream dari aplikasi utama Bitchord
+    window.addEventListener('message', async (event) => {
+      const { type, streamUrl, title, meta } = event.data || {};
+      if (type === 'BITCHORD_LOAD_LOSSLESS' && streamUrl) {
+        await initAudioEngine();
+        audioEl.src = streamUrl;
+        if (title) document.getElementById('trackTitle').textContent = title;
+        if (meta) document.getElementById('trackMeta').textContent = meta;
+        if (audioCtx.state === 'suspended') await audioCtx.resume();
+        audioEl.play();
+      }
+    });
+  </script>
+</body>
+</html>

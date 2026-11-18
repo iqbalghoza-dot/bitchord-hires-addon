@@ -1,0 +1,9 @@
+{
+  "name": "bitchord-hires-lossless-addon",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "npx serve .",
+    "build": "echo 'Static & Edge ready for Vercel'"
+  }
+}
