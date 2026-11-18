@@ -2,30 +2,24 @@ export default async function handler(req, res) {
   res.setHeader('Content-Type', 'application/json');
   res.setHeader('Access-Control-Allow-Origin', '*');
 
-  const fullUrl = decodeURIComponent(req.url || '');
-  const pathParam = decodeURIComponent(req.query?.path || '');
+  const reqType = (req.query?.type || 'track').replace(/\.json$/i, '');
   let query = req.query?.q || req.query?.query || req.query?.search || '';
 
-  // 1. Cek pola search=kata_kunci (format Stremio/BitChord catalog)
-  if (!query) {
-    const eqMatch = `${fullUrl} ${pathParam}`.match(/search=([^&./?]+)/i);
-    if (eqMatch) query = eqMatch[1];
+  if (!query && req.query?.extra) {
+    const m = decodeURIComponent(req.query.extra).match(/search=([^&]+)/i);
+    if (m) query = m[1];
   }
 
-  // 2. Cek pola /search/track/kata_kunci.json atau /search/music/kata_kunci.json
-  if (!query && pathParam) {
-    const cleanPath = pathParam.replace(/\.json$/i, '');
-    const segments = cleanPath.split('/').filter(Boolean);
-    const lastSegment = segments[segments.length - 1] || '';
-    if (lastSegment && !['hires-top', 'hires-music', 'track', 'music'].includes(lastSegment.toLowerCase())) {
-      query = lastSegment;
-    }
+  if (!query && req.url) {
+    const urlDecoded = decodeURIComponent(req.url);
+    const m1 = urlDecoded.match(/search=([^&.?/]+)/i);
+    const m2 = urlDecoded.match(/\/search\/[^/]+\/([^/?]+?)(?:\.json)?(?:\?|$)/i);
+    if (m1) query = m1[1];
+    else if (m2) query = m2[1];
   }
 
   query = (query || '').replace(/\.json$/i, '').trim();
-
-  // Jika query kosong (misalnya baru membuka halaman katalog), tampilkan lagu populer sebagai tes
-  const searchTerm = query || 'Daft Punk';
+  const searchTerm = query || 'Tulus';
 
   try {
     const apiRes = await fetch(
@@ -51,14 +45,16 @@ export default async function handler(req, res) {
 
       return {
         id: itemId,
-        type: 'track',
+        type: reqType === 'music' ? 'music' : 'track',
         name: `${title} - ${artist}`,
         title: title,
         artist: artist,
+        artists: [artist],
         album: album,
         duration: track.duration,
         poster: cover,
         cover: cover,
+        artwork: cover,
         thumbnail: cover,
         posterShape: 'square',
         description: `${title} • ${artist}${album ? ` (${album})` : ''}`
@@ -68,7 +64,8 @@ export default async function handler(req, res) {
     return res.status(200).json({
       metas: items,
       results: items,
-      tracks: items
+      tracks: items,
+      items: items
     });
   } catch (err) {
     return res.status(200).json({
