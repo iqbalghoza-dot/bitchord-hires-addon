@@ -2,8 +2,8 @@ export default async function handler(req, res) {
   res.setHeader('Content-Type', 'application/json');
   res.setHeader('Access-Control-Allow-Origin', '*');
 
-  const rawPath = decodeURIComponent(req.query?.path || req.url || '');
-  const hiresMatch = rawPath.match(/(hires:[A-Za-z0-9_-]+)/);
+  const rawSource = decodeURIComponent(req.query?.id || req.query?.path || req.url || '');
+  const hiresMatch = rawSource.match(/(hires:[A-Za-z0-9_-]+)/);
   const rawId = hiresMatch ? hiresMatch[1] : '';
 
   let title = '';
@@ -23,7 +23,6 @@ export default async function handler(req, res) {
 
   const streams = [];
 
-  // Ambil stream audio dari Deezer API berdasarkan ID lagu
   if (dzId) {
     try {
       const dzRes = await fetch(`https://api.deezer.com/track/${dzId}`);
