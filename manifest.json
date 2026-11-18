@@ -1,8 +1,8 @@
 {
   "id": "com.bitchord.hires.lossless",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "name": "Hi-Res Lossless Audio",
-  "description": "Pencarian & Pemutar Audio FLAC/WAV Hi-Res Lossless untuk BitChord",
+  "description": "Pencarian & Pemutar Audio Hi-Res Lossless untuk BitChord",
   "resources": [
     "search",
     "catalog",
@@ -11,7 +11,9 @@
   ],
   "types": [
     "track",
-    "music"
+    "music",
+    "album",
+    "artist"
   ],
   "idPrefixes": [
     "hires:"
@@ -19,16 +21,8 @@
   "catalogs": [
     {
       "type": "track",
-      "id": "hires-top",
+      "id": "hires-track",
       "name": "Hi-Res Lossless",
-      "extra": [
-        { "name": "search", "isRequired": false }
-      ]
-    },
-    {
-      "type": "music",
-      "id": "hires-music",
-      "name": "Hi-Res Music",
       "extra": [
         { "name": "search", "isRequired": false }
       ]
