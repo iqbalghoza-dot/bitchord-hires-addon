@@ -11,13 +11,10 @@
     }
   ],
   "rewrites": [
-    { "source": "/search/:type/:query.json", "destination": "/api/search.js?type=:type&q=:query" },
-    { "source": "/search/:type/:query", "destination": "/api/search.js?type=:type&q=:query" },
-    { "source": "/search", "destination": "/api/search.js" },
-    { "source": "/catalog/:type/:id/search=:query.json", "destination": "/api/search.js?type=:type&q=:query" },
-    { "source": "/catalog/:type/:id/:extra.json", "destination": "/api/search.js?type=:type&extra=:extra" },
-    { "source": "/catalog/:type/:id.json", "destination": "/api/search.js?type=:type" },
-    { "source": "/meta/:type/:id.json", "destination": "/api/meta.js?type=:type&id=:id" },
-    { "source": "/stream/:type/:id.json", "destination": "/api/stream.js?type=:type&id=:id" }
+    { "source": "/search", "destination": "/api/index.js" },
+    { "source": "/search/:path*", "destination": "/api/index.js" },
+    { "source": "/catalog/:path*", "destination": "/api/index.js" },
+    { "source": "/meta/:path*", "destination": "/api/index.js" },
+    { "source": "/stream/:path*", "destination": "/api/index.js" }
   ]
 }
