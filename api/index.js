@@ -1,20 +1,19 @@
 async function handler(req, res) {
   res.setHeader('Content-Type', 'application/json');
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', '*');
 
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
   }
 
-  const action = (req.query?.action || '').toLowerCase();
-  const route = decodeURIComponent(req.query?.route || req.url || '');
+  const rawRoute = decodeURIComponent(req.query?.route || req.url || '');
+  console.log('BITCHORD_CALL:', req.method, rawRoute, JSON.stringify(req.query));
 
-  // ==========================================
-  // 1. STREAM (PEMUTAR AUDIO)
-  // ==========================================
-  if (action === 'stream' || route.includes('/stream/')) {
-    const hiresMatch = route.match(/(hires:[A-Za-z0-9_-]+)/);
+  // 1. STREAM / PLAY
+  if (rawRoute.includes('stream') || rawRoute.includes('play') || rawRoute.includes('track/')) {
+    const hiresMatch = rawRoute.match(/(hires:[A-Za-z0-9_-]+)/);
     const rawId = hiresMatch ? hiresMatch[1] : '';
 
     let title = '';
@@ -35,7 +34,7 @@ async function handler(req, res) {
     const streams = [];
 
     if (title && artist) {
-      const nodes = ['https://triton.squid.wtf', 'https://api.monochrome.tf', 'https://hifi.pnp.workers.dev'];
+      const nodes = ['https://triton.squid.wtf', 'https://api.monochrome.tf'];
       for (const node of nodes) {
         try {
           const ctrl = new AbortController();
@@ -98,66 +97,18 @@ async function handler(req, res) {
     });
   }
 
-  // ==========================================
-  // 2. META (DETAIL LAGU)
-  // ==========================================
-  if (action === 'meta' || route.includes('/meta/')) {
-    const hiresMatch = route.match(/(hires:[A-Za-z0-9_-]+)/);
-    const rawId = hiresMatch ? hiresMatch[1] : 'hires:track';
-
-    let title = 'Hi-Res Lossless Track';
-    let artist = 'Unknown Artist';
-    let album = 'Hi-Res Lossless';
-    let poster = 'https://dummyimage.com/500x500/0b0d12/00e5ff.png&text=HI-RES';
-
-    try {
-      if (rawId.startsWith('hires:')) {
-        const payload = JSON.parse(
-          Buffer.from(rawId.replace('hires:', ''), 'base64url').toString('utf8')
-        );
-        title = payload.t || title;
-        artist = payload.a || artist;
-        if (payload.al) album = payload.al;
-        if (payload.c) poster = payload.c;
-      }
-    } catch (_) {}
-
-    const metaObj = {
-      id: rawId,
-      type: 'track',
-      name: title,
-      title,
-      artist,
-      artists: [artist],
-      album,
-      poster,
-      cover: poster,
-      artwork: poster,
-      posterShape: 'square',
-      description: `${title} • ${artist} (${album})`
-    };
-
-    return res.status(200).json({
-      meta: metaObj,
-      track: metaObj,
-      data: metaObj
-    });
-  }
-
-  // ==========================================
-  // 3. SEARCH & CATALOG
-  // ==========================================
+  // 2. SEARCH / CATALOG / FALLBACK DEFAULT
   let query = req.query?.q || req.query?.query || req.query?.search || req.query?.term || '';
 
-  if (!query && route) {
-    const eqMatch = route.match(/search=([^&.?/]+)/i);
+  if (!query && rawRoute) {
+    const eqMatch = rawRoute.match(/search=([^&.?/]+)/i);
     if (eqMatch) {
       query = eqMatch[1];
     } else {
-      const cleanRoute = route.split('?')[0].replace(/\.json$/i, '');
+      const cleanRoute = rawRoute.split('?')[0].replace(/\.json$/i, '');
       const segments = cleanRoute.split('/').filter(Boolean);
       const last = segments[segments.length - 1] || '';
-      const ignored = ['search', 'catalog', 'track', 'tracks', 'music', 'album', 'artist', 'hires-top'];
+      const ignored = ['search', 'catalog', 'track', 'tracks', 'music', 'album', 'artist', 'hires-top', 'api', 'index.js'];
       if (last && !ignored.includes(last.toLowerCase())) {
         query = last;
       }
@@ -206,6 +157,8 @@ async function handler(req, res) {
         artwork: cover,
         thumbnail: cover,
         image: cover,
+        streamUrl: track.previewUrl || '',
+        url: track.previewUrl || '',
         posterShape: 'square',
         description: `${artist}${album ? ` • ${album}` : ''}`
       };
@@ -230,4 +183,3 @@ async function handler(req, res) {
 }
 
 module.exports = handler;
-                       
