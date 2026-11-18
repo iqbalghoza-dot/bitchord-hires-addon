@@ -8,15 +8,20 @@ async function handler(req, res) {
     return res.status(200).end();
   }
 
+  let body = {};
+  try {
+    body = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : (req.body || {});
+  } catch (_) {}
+
   const rawRoute = decodeURIComponent(req.query?.route || req.url || '');
-  console.log('BITCHORD_CALL:', req.method, rawRoute, JSON.stringify(req.query));
+  console.log('BITCHORD_CALL:', req.method, rawRoute, JSON.stringify(req.query), JSON.stringify(body));
 
   // ==========================================
   // 1. ENDPOINT STREAM (BITCHORD V2)
   // ==========================================
   if (rawRoute.includes('stream') || rawRoute.includes('play')) {
     const hiresMatch = rawRoute.match(/(hires_[A-Za-z0-9_-]+)/);
-    const idParam = req.query?.id || (hiresMatch ? hiresMatch[1] : '');
+    const idParam = req.query?.id || body?.id || (hiresMatch ? hiresMatch[1] : '');
 
     let title = '';
     let artist = '';
@@ -116,13 +121,17 @@ async function handler(req, res) {
   }
 
   // ==========================================
-  // 2. ENDPOINT SEARCH (100% IDENTIK DENGAN LOSSLESS BRIDGE)
+  // 2. ENDPOINT SEARCH (GET & POST BITCHORD V2)
   // ==========================================
   let query =
     req.query?.q ||
     req.query?.query ||
     req.query?.search ||
     req.query?.term ||
+    body?.q ||
+    body?.query ||
+    body?.search ||
+    body?.term ||
     '';
 
   if (!query && rawRoute) {
@@ -190,4 +199,3 @@ async function handler(req, res) {
 }
 
 module.exports = handler;
-              
