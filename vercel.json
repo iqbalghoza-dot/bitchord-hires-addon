@@ -11,8 +11,8 @@
     }
   ],
   "rewrites": [
-    { "source": "/search/:path*", "destination": "/api/index.js?action=search&route=:path*" },
     { "source": "/search", "destination": "/api/index.js?action=search" },
+    { "source": "/search/:path*", "destination": "/api/index.js?action=search&route=:path*" },
     { "source": "/catalog/:path*", "destination": "/api/index.js?action=search&route=:path*" },
     { "source": "/meta/:path*", "destination": "/api/index.js?action=meta&route=:path*" },
     { "source": "/stream/:path*", "destination": "/api/index.js?action=stream&route=:path*" }
