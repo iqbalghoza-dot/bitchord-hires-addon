@@ -6,15 +6,19 @@
       "source": "/(.*)",
       "headers": [
         { "key": "Access-Control-Allow-Origin", "value": "*" },
-        { "key": "Access-Control-Allow-Methods", "value": "GET,OPTIONS" }
+        { "key": "Access-Control-Allow-Methods", "value": "GET,POST,OPTIONS" },
+        { "key": "Access-Control-Allow-Headers", "value": "*" }
       ]
     }
   ],
   "rewrites": [
-    { "source": "/search", "destination": "/api/index.js?action=search" },
-    { "source": "/search/:path*", "destination": "/api/index.js?action=search&route=:path*" },
-    { "source": "/catalog/:path*", "destination": "/api/index.js?action=search&route=:path*" },
-    { "source": "/meta/:path*", "destination": "/api/index.js?action=meta&route=:path*" },
-    { "source": "/stream/:path*", "destination": "/api/index.js?action=stream&route=:path*" }
+    {
+      "source": "/manifest.json",
+      "destination": "/manifest.json"
+    },
+    {
+      "source": "/:path*",
+      "destination": "/api/index.js?route=:path*"
+    }
   ]
 }
