@@ -10,9 +10,6 @@ module.exports = async function handler(req, res) {
   const action = (req.query?.action || '').toLowerCase();
   const route = decodeURIComponent(req.query?.route || req.url || '');
 
-  // ==========================================
-  // 1. STREAM (PEMUTAR AUDIO)
-  // ==========================================
   if (action === 'stream' || route.includes('/stream/')) {
     const hiresMatch = route.match(/(hires:[A-Za-z0-9_-]+)/);
     const rawId = hiresMatch ? hiresMatch[1] : '';
@@ -88,9 +85,6 @@ module.exports = async function handler(req, res) {
     return res.status(200).json({ streams });
   }
 
-  // ==========================================
-  // 2. META (DETAIL LAGU)
-  // ==========================================
   if (action === 'meta' || route.includes('/meta/')) {
     const hiresMatch = route.match(/(hires:[A-Za-z0-9_-]+)/);
     const rawId = hiresMatch ? hiresMatch[1] : 'hires:track';
@@ -125,9 +119,6 @@ module.exports = async function handler(req, res) {
     });
   }
 
-  // ==========================================
-  // 3. SEARCH & CATALOG
-  // ==========================================
   let query = req.query?.q || req.query?.query || req.query?.search || '';
 
   if (!query && route) {
