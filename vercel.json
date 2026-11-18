@@ -1,16 +1,18 @@
 {
   "version": 2,
+  "outputDirectory": ".",
   "headers": [
     {
       "source": "/(.*)",
       "headers": [
-        { "key": "Access-Control-Allow-Origin", "value": "*" },
-        { "key": "Cross-Origin-Opener-Policy", "value": "same-origin" },
-        { "key": "Cross-Origin-Embedder-Policy", "value": "require-corp" }
+        { "key": "Access-Control-Allow-Origin", "value": "*" }
       ]
     }
   ],
   "rewrites": [
-    { "source": "/manifest.json", "destination": "/api/manifest.js" }
+    {
+      "source": "/stream/:type/:id.json",
+      "destination": "/api/stream.js"
+    }
   ]
 }
